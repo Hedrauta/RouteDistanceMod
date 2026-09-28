@@ -18,7 +18,7 @@ namespace RouteDistanceMod
 
     public static class RouteDistanceCalculator
     {
-        public const float GateTransitionSeconds = 6f;
+        public const float GateTransitionSeconds = 7f;
         public const float FastLaneMultiplier = 7f;
 
         private static readonly FieldInfo FuelField = AccessTools.Field(typeof(TravelManager), "fuelMultiplier");

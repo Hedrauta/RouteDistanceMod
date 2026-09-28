@@ -11,7 +11,7 @@ using Source.Player;
 
 namespace RouteDistanceMod
 {
-    [BepInPlugin("h3draut3r.routedistance", "Route Distance HUD", "0.1.0")]
+    [BepInPlugin("h3draut3r.routedistance", "Route Distance HUD", "0.2.0")]
     public class Plugin : BaseUnityPlugin
     {
         private void Awake()
@@ -19,9 +19,8 @@ namespace RouteDistanceMod
             new Harmony("h3draut3r.routedistance").PatchAll();
         }
     }
-	
-	
-	[HarmonyPatch(typeof(TravelInfo), "Awake")]
+
+    [HarmonyPatch(typeof(TravelInfo), "Awake")]
     public static class TravelInfo_Awake_Patch
     {
         public static TextMeshProUGUI routeDistanceText;
@@ -90,7 +89,8 @@ namespace RouteDistanceMod
         }
     }
 
-    // Start der Reise / Chargen: initialDistance ist hier sicher
+    // Start der Reise / Chargen: initialDistance ist hier sicher.
+    // Hier wird die Zeit komplett neu berechnet (auch nach einem Sprung + Charge).
     [HarmonyPatch(typeof(TravelInfo), "InitializeTravelInformation")]
     public static class TravelInfo_Init_Patch
     {
@@ -127,8 +127,46 @@ namespace RouteDistanceMod
         }
     }
 
+    // Sprungübergang beginnt: Die Route-ETA läuft ab jetzt selbst weiter herunter,
+    // weil UpdateTravelInfo während des Übergangs nicht mehr aufgerufen wird.
+    [HarmonyPatch(typeof(TravelInfo), "ShowJumpTransition")]
+    public static class TravelInfo_JumpTransition_Patch
+    {
+        static void Postfix()
+        {
+            HudTextHelper.BeginTransition();
+        }
+    }
+
+    // Läuft jeden Frame und zählt die Route-ETA während des Übergangs herunter
+    [HarmonyPatch(typeof(TravelInfo), "Update")]
+    public static class TravelInfo_Tick_Patch
+    {
+        static void Postfix()
+        {
+            HudTextHelper.TickTransition(Time.deltaTime);
+        }
+    }
+
+    // Reise abgebrochen / HUD ausgeblendet: Zähler zurücksetzen
+    [HarmonyPatch(typeof(TravelInfo), "ToggleVisible")]
+    public static class TravelInfo_ToggleVisible_Patch
+    {
+        static void Postfix(bool toggle)
+        {
+            if (!toggle)
+            {
+                HudTextHelper.ResetTransition();
+            }
+        }
+    }
+
     internal static class HudTextHelper
     {
+        // Zuletzt berechnete bzw. heruntergezählte Rest-Reisezeit in Sekunden (< 0 = unbekannt)
+        private static float currentSeconds = -1f;
+        private static bool transitionActive;
+
         // waypoints[0] ist das aktuelle Ziel. Mehr als ein Eintrag = noch Sprünge/Segmente danach
         internal static bool HasJumpsAhead()
         {
@@ -148,6 +186,11 @@ namespace RouteDistanceMod
         {
             SetActive(TravelInfo_Awake_Patch.routeDistanceText, visible);
             SetActive(TravelInfo_Awake_Patch.routeEtaText, visible);
+
+            if (!visible)
+            {
+                ResetTransition();
+            }
         }
 
         private static void SetActive(TextMeshProUGUI text, bool active)
@@ -160,15 +203,48 @@ namespace RouteDistanceMod
 
         internal static void UpdateText(float firstSegmentDistance, float currentSpeed)
         {
+            // Jede echte Neuberechnung beendet den Übergangs-Countdown
+            transitionActive = false;
+
             RouteEstimate est = RouteDistanceCalculator.Compute(firstSegmentDistance, currentSpeed);
+            currentSeconds = est.seconds;
 
             if (TravelInfo_Awake_Patch.routeDistanceText != null)
             {
-                TravelInfo_Awake_Patch.routeDistanceText.text = $"To Dest: {est.distance *100f:0} Ls";
+                TravelInfo_Awake_Patch.routeDistanceText.text = $"To Target: {est.distance *100f:0} Ls";
             }
+            SetEtaText(currentSeconds);
+        }
+
+        internal static void BeginTransition()
+        {
+            if (currentSeconds < 0f) return;
+
+            var eta = TravelInfo_Awake_Patch.routeEtaText;
+            if (eta == null || !eta.gameObject.activeSelf) return;
+
+            transitionActive = true;
+        }
+
+        internal static void TickTransition(float deltaTime)
+        {
+            if (!transitionActive) return;
+
+            currentSeconds = Mathf.Max(0f, currentSeconds - deltaTime);
+            SetEtaText(currentSeconds);
+        }
+
+        internal static void ResetTransition()
+        {
+            transitionActive = false;
+            currentSeconds = -1f;
+        }
+
+        private static void SetEtaText(float seconds)
+        {
             if (TravelInfo_Awake_Patch.routeEtaText != null)
             {
-                TravelInfo_Awake_Patch.routeEtaText.text = $"Dest ETA: {FormatTime(est.seconds)}";
+                TravelInfo_Awake_Patch.routeEtaText.text = $"Route ETA: {FormatTime(seconds)}";
             }
         }
 
