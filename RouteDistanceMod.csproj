@@ -1,0 +1,31 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net472</TargetFramework>
+    <LangVersion>9.0</LangVersion>
+    <RootNamespace>RouteDistanceMod</RootNamespace>
+    <AssemblyName>RouteDistanceMod</AssemblyName>
+    <Version>0.1.0</Version>
+    <Nullable>disable</Nullable>
+    <BaseIntermediateOutputPath>obj/</BaseIntermediateOutputPath>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.3" PrivateAssets="all" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <LibDir>$(MSBuildThisFileDirectory)lib</LibDir>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Reference Include="Assembly-CSharp" HintPath="$(LibDir)/Assembly-CSharp.dll" Private="false" />
+    <Reference Include="BepInEx" HintPath="$(LibDir)/BepInEx.dll" Private="false" />
+    <Reference Include="0Harmony" HintPath="$(LibDir)/0Harmony.dll" Private="false" />
+    <Reference Include="UnityEngine" HintPath="$(LibDir)/UnityEngine.dll" Private="false" />
+    <Reference Include="UnityEngine.CoreModule" HintPath="$(LibDir)/UnityEngine.CoreModule.dll" Private="false" />
+    <Reference Include="UnityEngine.UI" HintPath="$(LibDir)/UnityEngine.UI.dll" Private="false" />
+    <Reference Include="Unity.TextMeshPro" HintPath="$(LibDir)/Unity.TextMeshPro.dll" Private="false" />
+  </ItemGroup>
+
+</Project>
