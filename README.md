@@ -24,8 +24,8 @@ The extra lines disappear automatically on the last segment of the trip, where t
 
 ## Requirements
 
-- Vanguard Galaxy (v0.8.2.4)
-- [BepInEx 5.x](https://github.com/BepInEx/BepInEx/releases)
+- Vanguard Galaxy (v0.8.2.4+)
+- [BepInEx 5.4.x](https://github.com/BepInEx/BepInEx/releases)
 
 ## Installation
 
