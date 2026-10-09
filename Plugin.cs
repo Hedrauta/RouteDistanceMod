@@ -11,7 +11,7 @@ using Source.Player;
 
 namespace RouteDistanceMod
 {
-    [BepInPlugin("h3draut3r.routedistance", "Route Distance HUD", "0.3.0")]
+    [BepInPlugin("h3draut3r.routedistance", "Route Distance HUD", "0.3.1")]
     public class Plugin : BaseUnityPlugin
     {
         private void Awake()
@@ -178,6 +178,18 @@ namespace RouteDistanceMod
         }
     }
 
+    // Wegpunkt erreicht: Das Tor ist jetzt schon aus der Wegpunktliste entfernt,
+    // aber das HUD wurde bisher erst beim nächsten Warp-Start aktualisiert.
+    // Darum die Zähler hier sofort neu setzen (also VOR dem Sprung).
+    [HarmonyPatch(typeof(TravelManager), "TravelToNextWaypoint")]
+    public static class TravelManager_NextWaypoint_Patch
+    {
+        static void Postfix()
+        {
+            HudTextHelper.SetCountText();
+        }
+    }
+
     internal static class HudTextHelper
     {
         // Zuletzt berechnete bzw. heruntergezählte Rest-Reisezeit in Sekunden (< 0 = unbekannt)
@@ -211,6 +223,17 @@ namespace RouteDistanceMod
 
             var wps = player.waypoints;
             warps = wps.Count;
+
+            // Wir stehen am Tor und der Sprung steht unmittelbar bevor: Das Tor ist
+            // schon aus der Liste entfernt, der Sprung aber noch nicht erledigt.
+            // Damit sinkt "Gates" weiterhin erst NACH dem Sprung.
+            var here = player.currentPointOfInterest;
+            if (wps.Count > 0 && wps[0] != null && player.currentSystem != null
+                && wps[0].system != player.currentSystem
+                && (here is JumpGate || here is Wormhole))
+            {
+                jumps++;
+            }
 
             // Der letzte Wegpunkt ist das Ziel: dort wird nicht mehr gesprungen
             for (int i = 0; i < wps.Count - 1; i++)
@@ -268,7 +291,7 @@ namespace RouteDistanceMod
             SetCountText();
         }
 
-        private static void SetCountText()
+        internal static void SetCountText()
         {
             CountRoute(out int warps, out int jumps);
 
