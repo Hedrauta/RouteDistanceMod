@@ -2,22 +2,33 @@
 
 A small [BepInEx](https://github.com/BepInEx/BepInEx) plugin for **Vanguard Galaxy** that extends the travel HUD with information about your **entire remaining route**, not just the current warp segment.
 
-By default the game only shows the distance and ETA to the next waypoint. When you travel across several systems via jumpgates, this plugin adds two extra lines:
+By default the game only shows the distance and ETA to the next waypoint. When you travel across several systems via jumpgates, this plugin adds four extra lines:
 
 |    Line   |  Meaning  |
 |-----------|---------|
-| `To Target:   XXXX Ls` | Total remaining distance to your final destination, summed over all segments |
+| `To Target: XXXX Ls` | Total remaining distance to your final destination, summed over all segments |
 | `Route ETA: M:SS` | Estimated total travel time, including gate transitions and fast lane travel |
+| `Gates: N` | Number of jumpgate jumps (or wormhole jumps) still ahead of you |
+| `Warps: N` | Number of warp legs still to fly, including the one to your final destination |
+
+The extra lines are placed in two columns below the existing HUD entries:
+
+|  Left column  |  Right column  |
+|---------------|----------------|
+| `To Target: XXXX Ls` | `Route ETA: M:SS` |
+| `Gates: N` | `Warps: N` |
 
 The extra lines disappear automatically on the last segment of the trip, where they would only repeat the normal HUD values.
 
 ## Features
 
-- Total remaining distance across all jumpgates and waypoints
+- Total remaining distance across all jumpgates and waypoints, shown in the same units as the game's own distance line
 - Total ETA that accounts for:
   - normal warp segments (acceleration, cruise, braking)
   - fast lane speed on gate-to-gate segments
-  - a fixed transition time per gate jump (6 s)
+  - a fixed transition time per gate jump (7 s)
+- The route ETA keeps counting down during the jump transition and is recalculated after the next warp charge
+- Counters for the remaining gate jumps and warp legs
 - Extra HUD lines are placed below the existing distance and ETA lines
 - Lines hide themselves on the final segment
 - No configuration needed
@@ -43,10 +54,12 @@ To uninstall, delete the DLL from `BepInEx/plugins/`.
 
 - The ETA is an **estimate**. It is based on the game's own movement rules, but a few things are not modeled:
   - the charge time of fast lane travel at each gate
+  - the time the ship needs to turn towards its target
   - the speed penalty when your hull is nearly destroyed
   - dynamic events that appear during travel
-- The 6 second gate transition time is a fixed assumption. Real values may differ slightly.
-- Wormhole segments are counted as zero distance plus the same transition time as a gate.
+- The 7 second gate transition time is a fixed assumption. Real values may differ slightly.
+- Wormhole segments are counted as zero distance plus the same transition time as a gate. A wormhole pair counts as one jump in the `Gates` counter.
+- The final destination never counts as a gate jump, even if it is a jumpgate itself.
 
 ## Compatibility
 
