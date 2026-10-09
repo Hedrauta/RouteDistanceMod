@@ -11,7 +11,7 @@ using Source.Player;
 
 namespace RouteDistanceMod
 {
-    [BepInPlugin("h3draut3r.routedistance", "Route Distance HUD", "0.2.0")]
+    [BepInPlugin("h3draut3r.routedistance", "Route Distance HUD", "0.3.0")]
     public class Plugin : BaseUnityPlugin
     {
         private void Awake()
@@ -25,10 +25,13 @@ namespace RouteDistanceMod
     {
         public static TextMeshProUGUI routeDistanceText;
         public static TextMeshProUGUI routeEtaText;
+        public static TextMeshProUGUI routeCountText;
+        public static TextMeshProUGUI routeWarpText;
 
         // Abstand der neuen Zeilen zu ihrem Original (negativ = nach unten)
         private const float DistanceLineOffset = -25f;
         private const float EtaLineOffset = -25f;
+        private const float CountLineOffset = -25f;
 
         static void Postfix(TravelInfo __instance)
         {
@@ -50,6 +53,20 @@ namespace RouteDistanceMod
             if (etaText != null)
             {
                 routeEtaText = CloneBelow(etaText, "RouteEtaText", EtaLineOffset);
+            }
+
+            // Warp-Zähler: rechte Spalte, unter der Route-ETA-Zeile
+            if (routeEtaText != null)
+            {
+                routeWarpText = CloneBelow(routeEtaText, "RouteWarpText", CountLineOffset);
+                routeWarpText.alignment = TextAlignmentOptions.Left;
+            }
+
+            // Sprung-Zähler: linke Spalte, unter der "To Target"-Zeile
+            if (routeDistanceText != null)
+            {
+                routeCountText = CloneBelow(routeDistanceText, "RouteCountText", CountLineOffset);
+                routeCountText.alignment = TextAlignmentOptions.Left;
             }
         }
 
@@ -182,10 +199,44 @@ namespace RouteDistanceMod
             return poi is JumpGate || poi is Wormhole;
         }
 
+        // Warps = Anzahl der Wegpunkte (jeder wird per Warp angeflogen)
+        // Jumps = Sprungtor-/Wurmloch-Sprünge, die noch durchgeführt werden müssen
+        private static void CountRoute(out int warps, out int jumps)
+        {
+            warps = 0;
+            jumps = 0;
+
+            var player = GamePlayer.current;
+            if (player == null || player.waypoints == null) return;
+
+            var wps = player.waypoints;
+            warps = wps.Count;
+
+            // Der letzte Wegpunkt ist das Ziel: dort wird nicht mehr gesprungen
+            for (int i = 0; i < wps.Count - 1; i++)
+            {
+                var w = wps[i];
+                if (w == null) continue;
+
+                if (w is JumpGate)
+                {
+                    jumps++;
+                }
+                else if (w is Wormhole && wps[i + 1] is Wormhole && wps[i + 1].system != w.system)
+                {
+                    // Wurmloch-Paar (Eingang + Ausgang) = ein Sprung
+                    jumps++;
+                    i++;
+                }
+            }
+        }
+
         internal static void SetVisible(bool visible)
         {
             SetActive(TravelInfo_Awake_Patch.routeDistanceText, visible);
             SetActive(TravelInfo_Awake_Patch.routeEtaText, visible);
+            SetActive(TravelInfo_Awake_Patch.routeCountText, visible);
+            SetActive(TravelInfo_Awake_Patch.routeWarpText, visible);
 
             if (!visible)
             {
@@ -211,9 +262,24 @@ namespace RouteDistanceMod
 
             if (TravelInfo_Awake_Patch.routeDistanceText != null)
             {
-                TravelInfo_Awake_Patch.routeDistanceText.text = $"To Target: {est.distance *100f:0} Ls";
+                TravelInfo_Awake_Patch.routeDistanceText.text = $"To Target: {est.distance * 100f:0} Ls";
             }
             SetEtaText(currentSeconds);
+            SetCountText();
+        }
+
+        private static void SetCountText()
+        {
+            CountRoute(out int warps, out int jumps);
+
+            if (TravelInfo_Awake_Patch.routeCountText != null)
+            {
+                TravelInfo_Awake_Patch.routeCountText.text = $"Gates: {jumps}";
+            }
+            if (TravelInfo_Awake_Patch.routeWarpText != null)
+            {
+                TravelInfo_Awake_Patch.routeWarpText.text = $"Warps: {warps}";
+            }
         }
 
         internal static void BeginTransition()
