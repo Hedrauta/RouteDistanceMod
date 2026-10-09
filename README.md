@@ -6,8 +6,8 @@ By default the game only shows the distance and ETA to the next waypoint. When y
 
 |    Line   |  Meaning  |
 |-----------|---------|
-| `To Dest:   XXXX Ls` | Total remaining distance to your final destination, summed over all segments |
-| `Dest ETA: M:SS` | Estimated total travel time, including gate transitions and fast lane travel |
+| `To Target:   XXXX Ls` | Total remaining distance to your final destination, summed over all segments |
+| `Route ETA: M:SS` | Estimated total travel time, including gate transitions and fast lane travel |
 
 The extra lines disappear automatically on the last segment of the trip, where they would only repeat the normal HUD values.
 
